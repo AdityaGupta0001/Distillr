@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distillr - Contact</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon-32x32.png') }}"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <style>
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0px); }
+        }
+        @keyframes gradientText {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        body { background: #0d1117; color: #fff; }
+
+        #particles-js {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%; /* Full height */
+            z-index: -10;
+        }
+        
+        .gradient-bg { background: linear-gradient(90deg, #00ff7f, #008f4c); }
+        .animated-text {
+            background: linear-gradient(90deg, #00ff7f, #007fff, #8a2be2, #00ff7f);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientText 3s infinite linear;
+        }
+    </style>
+</head>
+<body class="dark">
+
+    <div id="particles-js" class="absolute top-0 left-0 w-full h-full -z-10"></div>
+    <!-- Navbar -->
+    <nav class="gradient-bg p-4 flex justify-between items-center relative z-10">
+        <a href="/">
+            <div class="flex items-center gap-2">
+                <img src="{{ url_for('static', filename='images/funnel.png') }}" alt="Distillr Logo" class="w-8 h-8">
+                <h1 class="text-white text-3xl font-bold">Distillr</h1>
+            </div>
+        </a>
+        <div class="flex gap-4">
+            <a href="/summarizer">
+                <button class="relative bg-gradient-to-r from-green-900 to-green-700 text-white py-2 px-4 rounded-md transition-opacity hover:opacity-100 overflow-hidden group">
+                    Summarizer
+                    <span class="absolute inset-0 border border-white rounded-md scale-0 group-hover:scale-100 transition-transform duration-300 ease-out"></span>
+                </button>
+            </a>  
+            <a href="/">
+                <button class="relative bg-white/10 text-white py-2 px-4 rounded-md transition-opacity hover:opacity-100 overflow-hidden group">
+                    Home
+                    <span class="absolute inset-0 border border-white rounded-md scale-0 group-hover:scale-100 transition-transform duration-300 ease-out"></span>
+                </button>
+            </a>
+            <a href="/about">
+                <button class="relative bg-white/10 text-white py-2 px-4 rounded-md transition-opacity hover:opacity-100 overflow-hidden group">
+                    About
+                    <span class="absolute inset-0 border border-white rounded-md scale-0 group-hover:scale-100 transition-transform duration-300 ease-out"></span>
+                </button>
+            </a>
+            <button class="relative bg-white/10 text-white py-2 px-4 rounded-md transition-opacity hover:opacity-100 overflow-hidden group">
+                Contact
+                <span class="absolute inset-0 border border-white rounded-md scale-0 group-hover:scale-100 transition-transform duration-300 ease-out"></span>
+            </button>
+        </div>
+    </nav>
+    
+
+    <!-- Hero Section -->
+    <br>
+    <section class="text-center pt-12">
+        <h1 class="text-8xl font-bold">Get in Touch</h1>
+    </section>
+
+    <!-- Info Writeup -->
+    <section class="text-center pb-10 pt-5 px-4 max-w-4xl mx-auto">
+        <p class="text-3xl text-gray-400">Have questions or suggestions? Feel free to reach out!</p>
+    </section>
+
+    <!-- Feature Section with GIF -->
+    <section class="flex flex-col items-center justify-between max-w-6xl mx-auto gap-10 px-4 text-center">
+        <div class="flex justify-center gap-12 mt-6">
+            <div class="flex flex-col items-center">
+                <a href="https://github.com/AdityaGupta0001" target="_blank">
+                    <img src="{{ url_for('static', filename='images/github.png') }}" alt="GitHub" class="w-300 h-300 hover:scale-110 transition">
+                </a>
+                <p class="text-white-400 mt-2">Check out my GitHub</p>
+                
+            </div>
+            <div class="flex flex-col items-center">
+                <a href="https://www.linkedin.com/in/aditya-gupta-475328252/" target="_blank">
+                    <img src="{{ url_for('static', filename='images/linkedin.png') }}" alt="LinkedIn" class="w-300 h-300 hover:scale-110 transition">
+                </a>
+                <p class="text-white-400 mt-2">Connect with me on LinkedIn</p>
+            </div>
+        </div>
+    </section>
+
+    <br>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-center p-4 mt-6">
+        <p>&copy; 2025 Distillr. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
+    <script>
+        let currentIndex = 0;
+        function moveCarousel() {
+            const carousel = document.getElementById("carousel");
+            currentIndex = (currentIndex + 1) % 3;
+            carousel.style.transform = `translateX(-${currentIndex * 100}%)`;
+        }
+        setInterval(moveCarousel, 3000);
+
+        particlesJS("particles-js", {
+            particles: {
+                number: { value: 60 },
+                size: { value: 3 },
+                move: { speed: 2 },
+                opacity: { value: 0.6 },
+                line_linked: { enable: true, opacity: 0.3 },
+                color: { value: "#00ff7f" }
+            }
+        });
+    </script>
+</body>
+</html>

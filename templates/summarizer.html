@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon-32x32.png') }}"/>
+    <title>Distillr - Summarizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <style>
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0px); }
+          }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: translateY(0px); }
+            100% { opacity: 0; transform: translateY(-10px); }
+            }
+    
+        #changing-word {
+            display: inline-block;
+            min-width: 170px; /* Ensures dynamic text size */
+            text-align: left;
+            position: relative;
+            }
+        /* Dark Mode Styling */
+        body { background: #0d1117; color: #fff; }
+
+        /* Green Gradient Navbar & Buttons */
+        .gradient-bg { background: linear-gradient(90deg, #00ff7f, #008f4c); }
+
+        /* Button Animation: Border forms on hover */
+        .animated-border {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .animated-border::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 2px solid transparent;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .animated-border:hover::before {
+            border-color: white;
+            inset: -4px;
+        }
+
+        /* Glowing Text Boxes */
+        .glow-box {
+            background: #1c1c1c;
+            color: #ddd;
+            border: 1px solid #444;
+            box-shadow: 0 0 10px rgba(0, 255, 127, 0.3);
+        }
+    </style>
+</head>
+<body class="dark">
+
+    <!-- Particle Background -->
+    <div id="particles-js" class="absolute top-0 left-0 w-full h-full -z-10"></div>
+
+    <!-- Alert -->
+    <div id="errorAlert" class="fixed top-[-100px] left-1/2 transform -translate-x-1/2 w-11/12 max-w-lg bg-red-600 text-white text-sm font-medium p-3 rounded-lg shadow-lg flex justify-between items-center transition-all duration-500 z-50">
+        <span id="errorMessageText">Please enter text to summarize.</span>
+        <button id="closeError" class="ml-4 p-1 rounded-full hover:bg-red-700 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
+    <div id="copyAlert" 
+        class="fixed top-[-100px] left-1/2 transform -translate-x-1/2 w-11/12 max-w-lg bg-gradient-to-r from-green-900 to-green-700 text-white text-sm font-medium p-3 rounded-lg shadow-lg flex justify-between items-center transition-all duration-500 z-50">
+        <span>Copied to Clipboard!</span>
+        <button id="closeCopy" class="ml-4 p-1 rounded-full hover:bg-blue-700 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="gradient-bg p-4 flex justify-between items-center relative z-10">
+        <a href="/">
+            <div class="flex items-center gap-2">
+                <img src="{{ url_for('static', filename='images/funnel.png') }}" alt="Distillr Logo" class="w-8 h-8">
+                <h1 class="text-white text-3xl font-bold">Distillr</h1>
+            </div>
+        </a>
+        <div class="flex gap-4">
+            <button class="relative bg-gradient-to-r from-green-900 to-green-700 text-white py-2 px-4 rounded-md transition-opacity hover:opacity-100 overflow-hidden group">
+                Summarizer
+                <span class="absolute inset-0 border border-white rounded-md scale-0 group-hover:scale-100 transition-transform duration-300 ease-out"></span>
+            </button>  
+            <a href="/">
+                <button class="relative bg-white/10 text-white py-2 px-4 rounded-md transition-opacity hover:opacity-100 overflow-hidden group">
+                    Home
+                    <span class="absolute inset-0 border border-white rounded-md scale-0 group-hover:scale-100 transition-transform duration-300 ease-out"></span>
+                </button>
+            </a>
+            <a href="/about">
+                <button class="relative bg-white/10 text-white py-2 px-4 rounded-md transition-opacity hover:opacity-100 overflow-hidden group">
+                    About
+                    <span class="absolute inset-0 border border-white rounded-md scale-0 group-hover:scale-100 transition-transform duration-300 ease-out"></span>
+                </button>
+            </a>     
+            <a href="/contact">
+                <button class="relative bg-white/10 text-white py-2 px-4 rounded-md transition-opacity hover:opacity-100 overflow-hidden group">
+                    Contact
+                    <span class="absolute inset-0 border border-white rounded-md scale-0 group-hover:scale-100 transition-transform duration-300 ease-out"></span>
+                </button>
+            </a>
+        </div>
+    </nav>
+    
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-10 relative z-10">
+        <div class="flex items-center justify-center text-white text-4xl font-bold pb-10 pt-10">
+            <h1 class="text-center">
+                One click away from
+                <span id="changing-word" class="inline-block text-green-400"></span>
+            </h1>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Input Box -->
+            <div class="glow-box p-4 rounded-lg shadow-lg">
+                <h5 class="font-medium mb-2">Enter Text:</h5>
+                <textarea id="inputText" 
+                class="w-full p-3 rounded-lg bg-gray-900 text-white resize-none placeholder-gray-400 border-2 border-white focus:outline-none" 
+                rows="10" 
+                placeholder="Enter text to summarize..."></textarea>
+                <button id="summarizeBtn" class="w-full mt-3 gradient-bg text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 relative transition-all duration-300 hover:brightness-90">
+                    <span>Summarize</span>
+                    <div id="loadingSpinner" class="hidden w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                </button>
+            </div>
+
+            <!-- Output Box -->
+            <div class="glow-box p-4 rounded-lg shadow-lg relative">
+                <h5 class="font-medium mb-2">Summary:</h5>
+                <textarea id="outputText" class="w-full p-3 rounded-lg bg-gray-900 text-white resize-none placeholder-gray-400 border-2 border-white focus:outline-none" 
+                rows="10" readonly></textarea>
+                <button id="copyBtn" class="w-full mt-3 relative gradient-bg text-white font-semibold py-2 rounded-lg animated-border transition-all duration-300 hover:brightness-90" onclick="copyToClipboard()">
+                    Copy to Clipboard
+                    <span id="copyNotification" class="absolute right-4 top-[-30px] hidden text-sm bg-green-500 text-white px-2 py-1 rounded-lg">Copied!</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-center p-4 mt-6 relative z-10">
+        <p>&copy; 2025 Text Summarization App. All rights reserved.</p>
+    </footer>
+
+    <!-- Particles.js Script -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        const words = ["summarization", "simplification", "success"];
+        let index = 0;
+        const wordElement = document.getElementById("changing-word");
+
+        function changeWord() {
+            wordElement.textContent = words[index];
+
+            // Fade in
+            wordElement.style.animation = "fadeIn 1s ease-in-out forwards";
+
+            setTimeout(() => {
+                // Fade out
+                wordElement.style.animation = "fadeOut 1s ease-in-out forwards";
+
+                index = (index + 1) % words.length;
+
+                setTimeout(() => {
+                    changeWord();
+                }, 1000); // Small delay before the next word fades in
+                
+            }, 3000); // Keep the word visible before fading out
+        }
+
+        // Ensure the first word appears immediately
+        wordElement.textContent = words[index];
+        setTimeout(() => {
+            changeWord();
+        }, 2000); // Start animation after a short delay
+
+        // Start animation on page load
+        changeWord();
+        particlesJS("particles-js", {
+            particles: {
+                number: { value: 80 },
+                size: { value: 3 },
+                move: { speed: 2 },
+                line_linked: { enable: true, opacity: 0.3 },
+                color: { value: "#00ff7f" }
+            }
+        });
+
+        // TEXT SUMMARIZATION FUNCTIONALITY
+        document.getElementById("summarizeBtn").addEventListener("click", function () {
+            let inputText = document.getElementById("inputText").value.trim();
+            let errorAlert = document.getElementById("errorAlert");
+        
+            if (inputText === "") {
+                // Show alert (Slide in from top)
+                errorAlert.style.top = "20px";
+        
+                // Auto-hide after 3 seconds
+                setTimeout(() => {
+                    errorAlert.style.top = "-100px";
+                }, 3000);
+                return;
+            }
+        
+            // Proceed with summarization
+            document.getElementById("loadingSpinner").classList.remove("hidden");
+        
+            fetch("/summarize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: inputText }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("outputText").value = data.summary;
+            })
+            .finally(() => {
+                document.getElementById("loadingSpinner").classList.add("hidden");
+            });
+        });
+        
+        // CLOSE ERROR ALERT MANUALLY
+        document.getElementById("closeError").addEventListener("click", function () {
+            document.getElementById("errorAlert").style.top = "-100px";
+        });
+
+        // COPY TO CLIPBOARD
+        document.getElementById("copyBtn").addEventListener("click", function() {
+            let outputText = document.getElementById("outputText");
+            outputText.select();
+            document.execCommand("copy");
+
+            let notification = document.getElementById("copyNotification");
+            notification.classList.remove("hidden");
+            setTimeout(() => notification.classList.add("hidden"), 1000);
+        });
+        // Show and hide the "Copied to Clipboard" alert
+        function showCopyAlert() {
+            const copyAlert = document.getElementById("copyAlert");
+            copyAlert.style.top = "20px";  // Slide it into view
+            setTimeout(() => {
+                copyAlert.style.top = "-100px";  // Hide it after 2 seconds
+            }, 2000);
+        }
+
+        // Close button for the "Copied to Clipboard" alert
+        document.getElementById("closeCopy").addEventListener("click", () => {
+            const copyAlert = document.getElementById("copyAlert");
+            copyAlert.style.top = "-100px";  // Hide immediately
+        });
+
+        // Modify the copy to clipboard function
+        function copyToClipboard() {
+            const outputText = document.getElementById("outputText");
+
+            navigator.clipboard.writeText(outputText.value)
+                .then(() => {
+                    showCopyAlert();
+                })
+                .catch(err => {
+                    console.error("Failed to copy text: ", err);
+                });
+        }
+    </script>
+
+</body>
+</html>
