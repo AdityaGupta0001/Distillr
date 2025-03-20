@@ -1,3 +1,14 @@
+
+#TODO Implement the following features
+
+#TODO Abstractive vs. Extractive Summaries: Offering the option to generate either abstractive (paraphrased) or extractive (verbatim) summaries.
+#TODO Custom Length Control: Users can choose the length (e.g., 25%, 50%, 75% of the original text).
+#TODO Summarize texts in multiple languages.
+#TODO Translation of content to the required language.
+#TODO Keyword Highlighting: Automatically highlight the most relevant terms.
+#TODO Document and PDF Summaries: Extract summaries from PDF, DOCX, or TXT files.
+#TODO Export Options: Download summaries in various formats (PDF, DOCX, TXT).
+
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
