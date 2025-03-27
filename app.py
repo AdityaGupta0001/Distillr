@@ -16,7 +16,8 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 app = Flask(__name__)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model_path = "Aditya1000101/trained_summarization_model"  # Replace with your Hugging Face repo
+# model_path = "Aditya1000101/trained_summarization_model"  # Replace with your Hugging Face repo
+model_path = r"C:\Users\Dell\Desktop\trained_summarization_model_v2"
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForSeq2SeqLM.from_pretrained(model_path).to(device)
 
