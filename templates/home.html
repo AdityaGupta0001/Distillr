@@ -19,6 +19,45 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
+        @keyframes pulse {
+            0% { transform: scale(1.05); }
+            50% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) scale(1.05); }
+            25% { transform: translateX(-5px) scale(1.05); }
+            75% { transform: translateX(5px) scale(1.05); }
+        }
+        
+        @keyframes moveAround {
+            0% { transform: translate(0, 0) scale(1.05); }
+            25% { transform: translate(5px, -5px) scale(1.05); }
+            50% { transform: translate(0, 0) scale(1.05); }
+            75% { transform: translate(-5px, 5px) scale(1.05); }
+            100% { transform: translate(0, 0) scale(1.05); }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .cursor-box {
+                width: 120px;
+                height: 120px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .cursor-box {
+                width: 140px;
+                height: 140px;
+            }
+        }
         body { background: #0d1117; color: #fff; }
 
         #particles-js {
@@ -57,7 +96,56 @@
         .underline-visible::after {
             width: 100%;
             left: 0;
-        }        
+        }
+        .cursor-box {
+            width: 250px;
+            height: 100px;
+            background-color: #1c1c1c;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-align: center;
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cursor-box::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            top: -100%;
+            left: -100%;
+            transition: all 0.5s ease;
+        }
+        
+        .cursor-box:hover::before {
+            top: 100%;
+            left: 100%;
+        }
+
+        .copy {
+            cursor: copy;
+            background: linear-gradient(145deg, #2a2a2a, #383838);
+            border: 2px solid #00ff7f ;
+        }
+        .copy:hover {
+            transform: scale(1.02);
+            box-shadow: 5px 5px 0 #008f4c;
+        }
+        .zoom-in {
+            background: linear-gradient(145deg, #00ff802f, #008f4c33);
+            border: 2px solid #00ff7f;
+        }
+        .zoom-in:hover {
+            transform: scale(1.15);
+            border: 2px solid #008f4c;
+        }
     </style>
 </head>
 <body class="dark">
@@ -140,11 +228,11 @@
     </section>
     
     <!-- Engaging Writeup & Call-to-Action -->
-    <section class="text-center px-4 max-w-2xl mx-auto pb-20">
+    <section class="flex flex-col items-center justify-center text-center px-4 max-w-2xl mx-auto pb-20">
         <p class="text-4xl text-white-400">Get started now and transform the way you process information!</p>
         <br>
         <a href="/summarizer">
-            <button class="relative bg-gradient-to-r from-green-400 to-green-600 text-white py-4 px-12 rounded-lg text-lg font-semibold transition-opacity hover:opacity-100 overflow-hidden group">
+            <button class="cursor-box zoom-in relative bg-gradient text-white py-4 px-12 rounded-lg text-lg font-semibold">
                 Get Started
                 <span class="absolute inset-0 border border-white rounded-lg scale-0 group-hover:scale-100 transition-transform duration-300 ease-out"></span>
             </button>
