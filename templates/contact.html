@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distillr - Contact</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon-32x32.png') }}"/>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' };
@@ -19,7 +20,20 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
-        body { background: #0d1117; color: #fff; }
+        
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {   
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #0d1117;
+            color: #fff; 
+        }
 
         #particles-js {
             position: fixed;
@@ -38,6 +52,55 @@
             -webkit-text-fill-color: transparent;
             animation: gradientText 3s infinite linear;
         }
+        .social-icon-btn {
+            width: 150px;
+            height: 150px;
+            background-color: #fff;
+            text-align: center;
+            line-height: 150px;
+            font-size: 60px;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            border: 3px solid #fff;
+            z-index: 1;
+            transition: all 0.3s ease-in-out;
+          }
+          
+          .social-icon-btn .icon {
+            position: relative;
+            color: #262626;
+            transition: 0.5s;
+            z-index: 3;
+          }
+          
+          .social-icon-btn:hover .icon {
+            color: #fff;
+            transform: rotateY(360deg);
+          }
+          
+          .social-icon-btn::before {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: 0.5s;
+            z-index: 2;
+          }
+          
+          .social-icon-btn:hover::before {
+            top: 0;
+          }
+          
+          .github-btn::before {
+            background: #333;
+          }
+          
+          .linkedin-btn::before {
+            background: #0077b5;
+          }       
     </style>
 </head>
 <body class="dark">
@@ -91,22 +154,22 @@
 
     <!-- Feature Section with GIF -->
     <section class="flex flex-col items-center justify-between max-w-6xl mx-auto gap-10 px-4 text-center">
-        <div class="flex justify-center gap-12 mt-6">
+        <div class="flex justify-center gap-16 mt-6">
             <div class="flex flex-col items-center">
-                <a href="https://github.com/AdityaGupta0001" target="_blank">
-                    <img src="{{ url_for('static', filename='images/github.png') }}" alt="GitHub" class="w-300 h-300 hover:scale-110 transition">
+                <a href="https://github.com/AdityaGupta0001" target="_blank" class="social-icon-btn github-btn">
+                    <i class="fab fa-github icon"></i>
                 </a>
-                <p class="text-white-400 mt-2">Check out my GitHub</p>
-                
+                <p class="text-white-400 mt-4">Check out my GitHub</p>
             </div>
             <div class="flex flex-col items-center">
-                <a href="https://www.linkedin.com/in/aditya-gupta-475328252/" target="_blank">
-                    <img src="{{ url_for('static', filename='images/linkedin.png') }}" alt="LinkedIn" class="w-300 h-300 hover:scale-110 transition">
+                <a href="https://www.linkedin.com/in/aditya-gupta-475328252/" target="_blank" class="social-icon-btn linkedin-btn">
+                    <i class="fab fa-linkedin-in icon"></i>
                 </a>
-                <p class="text-white-400 mt-2">Connect with me on LinkedIn</p>
+                <p class="text-white-400 mt-4">Connect with me on LinkedIn</p>
             </div>
         </div>
     </section>
+    
 
     <br>
 
