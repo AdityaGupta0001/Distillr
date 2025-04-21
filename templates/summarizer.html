@@ -16,9 +16,48 @@
           }
         
         @keyframes fadeOut {
-            0% { opacity: 1; transform: translateY(0px); }
-            100% { opacity: 0; transform: translateY(-10px); }
+        0% { opacity: 1; transform: translateY(0px); }
+        100% { opacity: 0; transform: translateY(-10px); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1.05); }
+            50% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) scale(1.05); }
+            25% { transform: translateX(-5px) scale(1.05); }
+            75% { transform: translateX(5px) scale(1.05); }
+        }
+        
+        @keyframes moveAround {
+            0% { transform: translate(0, 0) scale(1.05); }
+            25% { transform: translate(5px, -5px) scale(1.05); }
+            50% { transform: translate(0, 0) scale(1.05); }
+            75% { transform: translate(-5px, 5px) scale(1.05); }
+            100% { transform: translate(0, 0) scale(1.05); }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: repeat(3, 1fr);
             }
+            .cursor-box {
+                width: 120px;
+                height: 120px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .cursor-box {
+                width: 140px;
+                height: 140px;
+            }
+        }
     
         #changing-word {
             display: inline-block;
@@ -59,6 +98,95 @@
             border: 1px solid #444;
             box-shadow: 0 0 10px rgba(0, 255, 127, 0.3);
         }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #00ff7f;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #00ff7f;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        #languageSelect {
+            appearance: none; /* Removes default styling */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: calc(100% - 1rem) center; /* Moves arrow left */
+            background-size: 1rem;
+            padding-right: 2.5rem; /* Make room for the arrow */
+          }
+          .cursor-box {
+            background-color: #1c1c1c;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-align: center;
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cursor-box::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            top: -100%;
+            left: -100%;
+            transition: all 0.5s ease;
+        }
+        
+        .cursor-box:hover::before {
+            top: 100%;
+            left: 100%;
+        }
+
+        .copy {
+            background: linear-gradient(145deg, #2a2a2a, #383838);
+            border: 2px solid #00ff7f ;
+        }
+        .copy:hover {
+            transform: scale(1.02);
+            box-shadow: 5px 5px 0 #008f4c;
+        }
+        .dropdown-limit {
+            max-height: 100px; /* control height here */
+            overflow-y: auto;  /* enables scrolling if options exceed height */
+            
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+          }
+          
+          .custom-scroll::-webkit-scrollbar-track {
+            background: #1f2937; /* Tailwind's gray-800 */
+          }
+          
+          .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #00ff7f; /* Tailwind's emerald-500 */
+            border-radius: 6px;
+            border: 2px solid #1f2937;
+          }
+          
+          .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background-color: #00ff7f; /* Tailwind's emerald-600 */
+          }
+          .transparent-bg { background-color: transparent; }
+         /* Ensure spinner and text/icon visibility toggle works */
+         .upload-content { display: inline-flex; align-items: center; gap: 0.5rem; } /* Helper class */
     </style>
 </head>
 <body class="dark">
@@ -67,23 +195,21 @@
     <div id="particles-js" class="absolute top-0 left-0 w-full h-full -z-10"></div>
 
     <!-- Alert -->
-    <div id="errorAlert" class="fixed top-[-100px] left-1/2 transform -translate-x-1/2 w-11/12 max-w-lg bg-red-600 text-white text-sm font-medium p-3 rounded-lg shadow-lg flex justify-between items-center transition-all duration-500 z-50">
-        <span id="errorMessageText">Please enter text to summarize.</span>
-        <button id="closeError" class="ml-4 p-1 rounded-full hover:bg-red-700 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </button>
-    </div>
+    <div id="errorAlert" 
+    class="fixed top-[-100px] left-1/2 transform -translate-x-1/2 w-auto max-w-full bg-white text-black text-sm font-medium px-6 py-3 rounded-lg shadow-[0_0_10px_2px_rgba(255,0,0,0.2)] flex justify-center items-center transition-all duration-500 z-50">
+    
+    <span id="errorAlertText" class="mr-2">Something went wrong. Please try again.</span>
+    <span class="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+</div>
+
+
 
     <div id="copyAlert" 
-        class="fixed top-[-100px] left-1/2 transform -translate-x-1/2 w-11/12 max-w-lg bg-gradient-to-r from-green-900 to-green-700 text-white text-sm font-medium p-3 rounded-lg shadow-lg flex justify-between items-center transition-all duration-500 z-50">
-        <span>Copied to Clipboard!</span>
-        <button id="closeCopy" class="ml-4 p-1 rounded-full hover:bg-blue-700 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </button>
+        class="fixed top-[-100px] left-1/2 transform -translate-x-1/2 w-auto max-w-full bg-white text-black text-sm font-medium px-6 py-3 rounded-lg shadow-[0_0_10px_2px_rgba(34,197,94,0.2)] flex justify-center items-center transition-all duration-500 z-50">
+        <span class="flex items-center gap-2">
+            Copied to Clipboard! 
+            <span class="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+        </span>
     </div>
 
     <!-- Navbar -->
@@ -133,34 +259,99 @@
 
             <!-- Input Box -->
             <div class="glow-box p-4 rounded-lg shadow-lg">
+                <div class="mt-4 pb-5">
+                    <label for="summaryLength" class="block text-sm font-medium text-gray-300 mb-2">
+                        Summary Length: <span id="lengthValue">50%</span>
+                    </label>
+                    <input type="range" id="summaryLength" min="10" max="90" value="50" 
+                           class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                </div>
                 <h5 class="font-medium mb-2">Enter Text:</h5>
                 <textarea id="inputText" 
-                class="w-full p-3 rounded-lg bg-gray-900 text-white resize-none placeholder-gray-400 border-2 border-white focus:outline-none" 
+                class="custom-scroll w-full p-3 rounded-lg bg-gray-900 text-white resize-none placeholder-gray-400 border-2 border-white focus:outline-none" 
                 rows="10" 
                 placeholder="Enter text to summarize..."></textarea>
-                <button id="summarizeBtn" class="w-full mt-3 gradient-bg text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 relative transition-all duration-300 hover:brightness-90">
-                    <span>Summarize</span>
-                    <div id="loadingSpinner" class="hidden w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
-                </button>
+
+                <input type="file" id="fileInput" class="hidden" accept=".txt,.pdf,.docx">
+
+                <div class="flex gap-4 mt-3">
+                    <button id="uploadBtn" class="cursor-box copy w-1/2 transparent-bg text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 relative transition-all duration-300 hover:brightness-90 border-2 border-dotted border-white">
+                        <span class="upload-content">
+                            <span>Upload</span>
+                            <img src="{{ url_for('static', filename='images/upload.png') }}" alt="icon" class="w-5 h-5 filter invert" />
+                        </span>
+                        <div id="uploadSpinner" class="hidden w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                    </button>
+                    <button id="summarizeBtn" class="cursor-box copy w-1/2 gradient-bg text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 relative transition-all duration-300 hover:brightness-90">
+                        <span>Summarize</span>
+                        <img src="{{ url_for('static', filename='images/summary.png') }}" alt="icon" class="w-5 h-5 filter invert" />
+                         <div id="loadingSpinner" class="hidden w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                    </button>
+                </div>
+                
             </div>
 
             <!-- Output Box -->
             <div class="glow-box p-4 rounded-lg shadow-lg relative">
+                <!-- Language Selection & Translate Button -->
+                <div class="flex items-center mb-3 gap-2 pt-5 pb-5">
+                    <select id="languageSelect" class="custom-scroll dropdown-limit w-3/4 p-2 rounded-lg bg-gray-900 text-white border border-white focus:outline-none text-sm">
+                    </select>
+                    <button id="translateBtn" class="cursor-box copy w-1/4 py-2 px-3 rounded-lg gradient-bg text-white text-sm font-semibold animated-border hover:brightness-75 transition-all duration-300">
+                        Translate
+                    </button>
+                </div>
+            
+                <!-- Summary Output Section -->
                 <h5 class="font-medium mb-2">Summary:</h5>
-                <textarea id="outputText" class="w-full p-3 rounded-lg bg-gray-900 text-white resize-none placeholder-gray-400 border-2 border-white focus:outline-none" 
-                rows="10" readonly></textarea>
-                <button id="copyBtn" class="w-full mt-3 relative gradient-bg text-white font-semibold py-2 rounded-lg animated-border transition-all duration-300 hover:brightness-90" onclick="copyToClipboard()">
-                    Copy to Clipboard
+                <textarea id="outputText" class="custom scroll w-full p-3 rounded-lg bg-gray-900 text-white resize-none placeholder-gray-400 border-2 border-white focus:outline-none" 
+                    rows="10" readonly></textarea>
+            
+                <!-- Copy Button -->
+                <button id="copyBtn" class="cursor-box copy w-full mt-3 relative gradient-bg text-white font-semibold py-2 rounded-lg animated-border transition-all duration-300 hover:brightness-90">
+                    <div class="flex items-center justify-center gap-2">
+                        <span>Copy to Clipboard</span>
+                        <img src="{{ url_for('static', filename='images/copy.png') }}" alt="copy icon" class="w-5 h-5 filter invert" />
+                    </div>
                     <span id="copyNotification" class="absolute right-4 top-[-30px] hidden text-sm bg-green-500 text-white px-2 py-1 rounded-lg">Copied!</span>
                 </button>
             </div>
+            
 
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-center p-4 mt-6 relative z-10">
-        <p>&copy; 2025 Text Summarization App. All rights reserved.</p>
+    <footer class="bg-gray-800 text-gray-400 py-8 mt-6 relative z-10">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+    
+                <div class="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 mb-4 md:mb-0">
+                    <a href="/about" class="hover:text-green-400 transition duration-300 text-sm">About</a>
+                    <a href="#resources" class="hover:text-green-400 transition duration-300 text-sm">Resources</a>
+                    <a href="/contact" class="hover:text-green-400 transition duration-300 text-sm">Contact Us</a>
+                    <a href="#support" class="hover:text-green-400 transition duration-300 text-sm">Support</a>
+                </div>
+    
+                <div class="flex justify-center space-x-4 mb-4 md:mb-0">
+                    <a href="https://github.com/AdityaGupta0001" target="_blank" rel="noopener noreferrer" aria-label="GitHub" class="hover:text-green-400 transition duration-300">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.026 2.747-1.026.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.001 10.001 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    <a href="https://www.linkedin.com/in/aditya-gupta-475328252/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" class="hover:text-green-400 transition duration-300">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                        </svg>
+                    </a>
+                </div>
+    
+            </div>
+    
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center">
+                <p class="text-gray-500 text-sm">&copy; 2025 Distillr. All rights reserved.</p>
+            </div>
+        </div>
     </footer>
 
     <!-- Particles.js Script -->
@@ -189,6 +380,17 @@
             }, 3000); // Keep the word visible before fading out
         }
 
+        function showErrorAlert(message) {
+            const errorAlert = document.getElementById("errorAlert");
+            const errorText = document.getElementById("errorAlertText");
+        
+            errorText.textContent = message;
+            errorAlert.style.top = "20px"; // Slide in
+        
+            setTimeout(() => {
+                errorAlert.style.top = "-100px"; // Slide out
+            }, 3000);
+        }
         // Ensure the first word appears immediately
         wordElement.textContent = words[index];
         setTimeout(() => {
@@ -213,13 +415,7 @@
             let errorAlert = document.getElementById("errorAlert");
         
             if (inputText === "") {
-                // Show alert (Slide in from top)
-                errorAlert.style.top = "20px";
-        
-                // Auto-hide after 3 seconds
-                setTimeout(() => {
-                    errorAlert.style.top = "-100px";
-                }, 3000);
+                showErrorAlert("Please enter text to summarize.");
                 return;
             }
         
@@ -233,29 +429,14 @@
             })
             .then(response => response.json())
             .then(data => {
+                console.log(data.summary);
                 document.getElementById("outputText").value = data.summary;
             })
             .finally(() => {
                 document.getElementById("loadingSpinner").classList.add("hidden");
             });
         });
-        
-        // CLOSE ERROR ALERT MANUALLY
-        document.getElementById("closeError").addEventListener("click", function () {
-            document.getElementById("errorAlert").style.top = "-100px";
-        });
 
-        // COPY TO CLIPBOARD
-        document.getElementById("copyBtn").addEventListener("click", function() {
-            let outputText = document.getElementById("outputText");
-            outputText.select();
-            document.execCommand("copy");
-
-            let notification = document.getElementById("copyNotification");
-            notification.classList.remove("hidden");
-            setTimeout(() => notification.classList.add("hidden"), 1000);
-        });
-        // Show and hide the "Copied to Clipboard" alert
         function showCopyAlert() {
             const copyAlert = document.getElementById("copyAlert");
             copyAlert.style.top = "20px";  // Slide it into view
@@ -263,11 +444,24 @@
                 copyAlert.style.top = "-100px";  // Hide it after 2 seconds
             }, 2000);
         }
-
-        // Close button for the "Copied to Clipboard" alert
-        document.getElementById("closeCopy").addEventListener("click", () => {
-            const copyAlert = document.getElementById("copyAlert");
-            copyAlert.style.top = "-100px";  // Hide immediately
+        // COPY TO CLIPBOARD
+        document.getElementById("copyBtn").addEventListener("click", function() {
+            let outputText = document.getElementById("outputText");
+            let errorAlert = document.getElementById("errorAlert");
+            if (outputText.value.trim().length == 0) {
+                showErrorAlert("Please enter text to summarize.");
+                return;
+            }
+            
+            else{
+                outputText.select();
+                document.execCommand("copy");
+                showCopyAlert();
+                
+                let notification = document.getElementById("copyNotification");
+                notification.classList.remove("hidden");
+                setTimeout(() => notification.classList.add("hidden"), 1000);
+            }
         });
 
         // Modify the copy to clipboard function
@@ -282,6 +476,185 @@
                     console.error("Failed to copy text: ", err);
                 });
         }
+
+        document.getElementById("summarizeBtn").addEventListener("click", function () {
+            let inputText = document.getElementById("inputText").value.trim();
+            let lengthRatio = document.getElementById("summaryLength").value / 100;
+            
+            // ... (existing error handling code)
+            
+            fetch("/summarize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    text: inputText,
+                    length_ratio: lengthRatio 
+                }),
+            })
+            // ... (rest of the existing code)
+        });
+        
+        // Add this to update the percentage display
+        document.getElementById("summaryLength").addEventListener("input", function() {
+            document.getElementById("lengthValue").textContent = this.value + "%";
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const languageSelect = document.getElementById("languageSelect");
+        
+            fetch("/static/supported_languages.json")
+                .then(response => response.json())
+                .then(data => {
+                    const languages = data[0]; // Your JSON is an array with one object
+        
+                    // Optional: Add default disabled option
+                    const defaultOption = document.createElement("option");
+                    defaultOption.textContent = "Select a language";
+                    defaultOption.disabled = true;
+                    defaultOption.selected = true;
+                    languageSelect.appendChild(defaultOption);
+        
+                    for (const [languageName, languageCode] of Object.entries(languages)) {
+                        const option = document.createElement("option");
+                        option.value = languageCode;
+                        option.textContent = languageName;
+                        languageSelect.appendChild(option);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error loading languages:", error);
+                });
+        });
+        document.getElementById("translateBtn").addEventListener("click", function () {
+            const languageSelect = document.getElementById("languageSelect");
+            const selectedLang = languageSelect.value;
+            let outputText = document.getElementById("outputText");
+
+            if (outputText.value.trim().length == 0) {
+                showErrorAlert("Please enter text to summarize.");
+                return;
+            }
+            else if (selectedLang=="Select a language" || !selectedLang) {
+                showErrorAlert("Please select a language before translating.");
+                return;
+              // proceed with translation logic...
+            } else {
+                fetch("/translate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        text: outputText.value,
+                        target_lang: selectedLang
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.error || `Translation service error: ${response.status}`);
+                        }).catch(() => {
+                            throw new Error(`Translation service error: ${response.status}`);
+                        });
+                    }
+                    return response.json();
+               })
+               .then(data => {
+                   outputText.value = data.translated_text;
+               })
+               .catch(error => {
+                   showErrorAlert(`Translation failed: ${error.message}`);
+               })
+               .finally(() => {
+               });
+            }
+          });
+          const uploadBtn = document.getElementById("uploadBtn");
+        const fileInput = document.getElementById("fileInput");
+        const uploadContent = uploadBtn.querySelector(".upload-content"); // Target wrapper
+        const uploadSpinner = document.getElementById("uploadSpinner");
+        const MAX_SIZE_MB = 3; // Max size in MB
+        const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+        const ALLOWED_TYPES = [
+            'text/plain',
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
+        ];
+        const ALLOWED_EXTENSIONS = ['.txt', '.pdf', '.docx'];
+
+
+        // Trigger file input click when Upload button is clicked
+        uploadBtn.addEventListener("click", () => {
+            fileInput.click();
+        });
+
+        // Handle file selection
+        fileInput.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return; // No file selected
+            }
+
+            // --- Validation ---
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            // Check Type (MIME type isn't always reliable, check extension too)
+            // if (!ALLOWED_TYPES.includes(file.type)) { // Less reliable check
+             if (!ALLOWED_EXTENSIONS.includes(fileExtension)) { // More reliable extension check
+                showErrorAlert(`Invalid file type. Allowed types: ${ALLOWED_EXTENSIONS.join(', ')}`);
+                fileInput.value = null; // Reset file input
+                return;
+            }
+
+            // Check Size
+            if (file.size > MAX_SIZE_BYTES) {
+                showErrorAlert(`File is too large. Maximum size is ${MAX_SIZE_MB} MB.`);
+                fileInput.value = null; // Reset file input
+                return;
+            }
+
+            // --- Prepare UI for Upload ---
+            uploadContent.classList.add("hidden"); // Hide text/icon
+            uploadSpinner.classList.remove("hidden"); // Show spinner
+            uploadBtn.disabled = true; // Disable button
+            inputText.value = ""; // Clear textarea while processing
+
+            // --- Send File to Backend ---
+            const formData = new FormData();
+            formData.append('file', file); // Key must match Flask request.files['file']
+
+            fetch('/upload', { // Make sure this matches your Flask route
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                 if (!response.ok) {
+                    // Try to parse error from backend JSON response
+                    return response.json().then(err => { throw new Error(err.error || `Upload failed: Server responded with ${response.status}`) });
+                }
+                return response.json(); // Expecting { "text": "extracted content" } or { "error": "..." }
+            })
+            .then(data => {
+                if (data.error) {
+                    showErrorAlert(data.error);
+                    inputText.value = ""; // Keep textarea clear on error
+                } else if (data.text) {
+                    inputText.value = data.text; // Populate textarea with extracted text
+                } else {
+                     showErrorAlert("Received empty text from document."); // Handle unexpected success response
+                     inputText.value = "";
+                }
+            })
+            .catch(error => {
+                console.error("Upload fetch error:", error);
+                showErrorAlert(`Upload failed: ${error.message}`);
+                inputText.value = ""; // Keep textarea clear on error
+            })
+            .finally(() => {
+                // --- Reset UI ---
+                uploadContent.classList.remove("hidden"); // Show text/icon
+                uploadSpinner.classList.add("hidden"); // Hide spinner
+                uploadBtn.disabled = false; // Re-enable button
+                fileInput.value = null; // Reset file input to allow uploading the same file again
+            });
+        });
     </script>
 
 </body>
