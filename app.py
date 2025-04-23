@@ -155,7 +155,7 @@ def summarize():
     length_ratio = float(data.get("length_ratio", 0.3))
     if not text:
         return jsonify({"summary": "Please enter some text to summarize."})
-    summary = summarize_text_chunked(text, chunk_size=900, chunk_overlap=100, summary_ratio=length_ratio)
+    summary = summarize_text_chunked(text, chunk_size=900, chunk_overlap=100, base_summary_ratio=length_ratio)
     return jsonify({"summary": summary})
 
 @app.route('/translate', methods=['POST'])
