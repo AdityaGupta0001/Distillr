@@ -7,12 +7,13 @@ from langdetect import detect
 from threading import Lock
 from dotenv import load_dotenv
 import os
+
+# --- Assume previous setup code is here (imports, load_dotenv, get_lang_code, model/tokenizer loading) ---
 load_dotenv()
-
 tokenizer_lock = Lock()
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-from langdetect import detect
-
+# (Include your get_lang_code function here)
 def get_lang_code(text):
     try:
         detected_lang = detect(text)
@@ -32,135 +33,217 @@ def get_lang_code(text):
         }
         return lang_map.get(detected_lang, "en_XX")
     except Exception:
-        return "en_XX"
+        return "en_XX" # Default to English on error
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+# --- Load Model and Tokenizer ---
+# (Your model/tokenizer loading code - ensure model and tokenizer are loaded globally or passed)
+# Example placeholder - replace with your actual loading logic
 print(f"Using device: {device}")
-
 base_model_name = "facebook/mbart-large-50"
-
-adapter_path = os.getenv("MODEL_PATH")
-
+adapter_path = os.getenv("MODEL_PATH") # Make sure MODEL_PATH is set in your .env
 try:
     tokenizer = AutoTokenizer.from_pretrained(adapter_path)
-    print(f"Tokenizer loaded successfully from {adapter_path}")
-except Exception as e:
-    print(f"Error loading tokenizer from {adapter_path}: {e}")
-    print(f"Attempting to load tokenizer from base model {base_model_name}...")
+except Exception:
+    print(f"Loading base tokenizer {base_model_name}")
     tokenizer = AutoTokenizer.from_pretrained(base_model_name)
-    print(f"Tokenizer loaded successfully from {base_model_name}")
 
-bnb_config = BitsAndBytesConfig(
-    load_in_8bit=True,
-)
-
-print(f"Loading base model: {base_model_name}...")
-base_model = AutoModelForSeq2SeqLM.from_pretrained(
-    base_model_name,
-    quantization_config=bnb_config,
-    torch_dtype=torch.bfloat16,
-    low_cpu_mem_usage=True
-)
-print("Base model loaded.")
-
-print(f"Loading PEFT adapter from: {adapter_path}...")
+bnb_config = BitsAndBytesConfig(load_in_8bit=True)
+print(f"Loading base model {base_model_name}")
+base_model = AutoModelForSeq2SeqLM.from_pretrained(base_model_name, quantization_config=bnb_config, torch_dtype=torch.bfloat16, low_cpu_mem_usage=True)
+print(f"Loading PEFT adapter {adapter_path}")
 model = PeftModel.from_pretrained(base_model, adapter_path)
-print("PEFT adapter loaded.")
-
 model = model.to(device)
-print(f"Combined PEFT model moved to {device}")
-
 model.eval()
-print("Model set to evaluation mode.")
+print("Model loaded and ready.")
+# --- End Model Loading ---
 
-def summarize_text_chunked(text, chunk_size=1000, chunk_overlap=50, summary_ratio=0.3):
-    tokens = tokenizer.tokenize(text)
-    total_tokens = len(tokens)
 
-    if total_tokens == 0:
+def summarize_text_chunked(
+    text: str,
+    chunk_size: int = 1000,        # Max tokens per chunk input
+    chunk_overlap: int = 150,       # Overlap between chunks (more overlap can improve coherence)
+    base_summary_ratio: float = 0.4,# Default desired ratio (can be tuned)
+    min_summary_tokens: int = 40,   # Absolute minimum summary tokens (tune this!)
+    max_summary_tokens: int = 300   # Absolute maximum summary tokens per chunk (tune this!)
+) -> str:
+    """
+    Summarizes text using a chunking approach with adaptive length calculation.
+
+    Args:
+        text: The input text to summarize.
+        chunk_size: Maximum number of tokens processed by the model in one go.
+        chunk_overlap: Number of tokens to overlap between chunks.
+        base_summary_ratio: The desired summary length as a fraction of input length.
+        min_summary_tokens: The hard minimum number of tokens for any chunk's summary.
+        max_summary_tokens: The hard maximum number of tokens for any chunk's summary.
+
+    Returns:
+        The generated summary string.
+    """
+    if not text or not text.strip():
+        print("Warning: Input text is empty.")
         return ""
 
+    # Use encode for potentially more accurate token count respecting special tokens
+    # Use add_special_tokens=False if you only want content tokens for length calculation
+    all_input_ids = tokenizer.encode(text, add_special_tokens=False)
+    total_tokens = len(all_input_ids)
+
+    if total_tokens == 0:
+         print("Warning: Input text resulted in zero tokens.")
+         return ""
+
+    # Ensure overlap is less than chunk_size
+    chunk_overlap = min(chunk_overlap, chunk_size - 50) # Ensure substantial non-overlap
+    if chunk_overlap < 0: chunk_overlap = 0
+
     step_size = max(1, chunk_size - chunk_overlap)
+    # Estimate chunks more accurately based on actual token IDs
     estimated_chunks = math.ceil(max(1, total_tokens - chunk_overlap) / step_size) if total_tokens > chunk_size else 1
 
     summaries = []
-    start = 0
+    start_idx = 0
+
+    print(f"Total tokens: {total_tokens}, Chunk size: {chunk_size}, Overlap: {chunk_overlap}, Step size: {step_size}")
 
     with tqdm(total=estimated_chunks, desc="Summarizing Chunks", unit="chunk") as pbar:
-        while start < total_tokens:
-            end = min(start + chunk_size, total_tokens)
-            chunk_tokens = tokens[start:end]
+        while start_idx < total_tokens:
+            end_idx = min(start_idx + chunk_size, total_tokens)
+            chunk_input_ids = all_input_ids[start_idx:end_idx]
 
-            if not chunk_tokens:
-                if start >= total_tokens: break
-                else:
-                    start = end - chunk_overlap if end > chunk_overlap else 0
-                    continue
+            if not chunk_input_ids:
+                 if start_idx >= total_tokens: break # End of text
+                 else: # Should not happen with correct logic, but safe-guard
+                      print(f"Warning: Empty chunk slice at index {start_idx}. Advancing.")
+                      start_idx += step_size # Advance to avoid infinite loop
+                      continue
 
-            chunk_text = tokenizer.decode(tokenizer.convert_tokens_to_ids(chunk_tokens), skip_special_tokens=True)
+            # Decode only the current chunk's IDs for language detection and model input
+            # skip_special_tokens=True is important here for clean text
+            chunk_text = tokenizer.decode(chunk_input_ids, skip_special_tokens=True)
 
-            if not chunk_text.strip():
-                if end == total_tokens: break
-                start = end - chunk_overlap if end > chunk_overlap else 0
+            if not chunk_text or not chunk_text.strip():
+                print(f"Warning: Decoded chunk is empty at index {start_idx}. Skipping.")
+                # Advance pointer: Move to the beginning of the next logical chunk
+                start_idx += step_size
+                pbar.update(1)
                 continue
 
             lang_code = get_lang_code(chunk_text)
 
+            # Prepare model inputs - Use the raw IDs for the model tensor
+            # Add special tokens (like <s>, </s>) expected by the model here
+            # We use encode_plus to get attention mask easily
             with tokenizer_lock:
-                tokenizer.src_lang = lang_code
-                inputs = tokenizer(chunk_text, return_tensors="pt", max_length=1024, truncation=True).to(device)
+                 tokenizer.src_lang = lang_code # Set source language for mBART
+                 # Let the tokenizer handle adding special tokens and creating attention mask
+                 inputs = tokenizer.encode_plus(
+                      chunk_text,
+                      return_tensors="pt",
+                      max_length=tokenizer.model_max_length, # Use tokenizer's max length (e.g., 1024 for mBART)
+                      truncation=True,
+                      padding=False # No padding needed for single sequence generation
+                 )
 
-            input_token_len = inputs.input_ids.shape[1]
-            target_max_len = max(20, math.ceil(input_token_len * summary_ratio))
-            target_min_len = max(10, math.ceil(target_max_len * 0.5))
 
-            with torch.no_grad():
-                summary_ids = model.generate(
-                    input_ids=inputs.input_ids,
-                    attention_mask=inputs.attention_mask,
-                    max_length=target_max_len,
-                    min_length=target_min_len,
-                    length_penalty=1.5,
-                    num_beams=4,
-                    early_stopping=True,
-                    no_repeat_ngram_size=2,
-                    decoder_start_token_id=tokenizer.lang_code_to_id[lang_code]
-                )
+            input_ids = inputs['input_ids'].to(device)
+            attention_mask = inputs['attention_mask'].to(device)
+            input_token_len = input_ids.shape[1] # Actual length fed to model
 
-            decoded_summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-            summaries.append(decoded_summary)
+            # --- Optimized Length Calculation ---
+            # 1. Calculate desired length based on ratio of *actual* model input length
+            desired_max_len = math.ceil(input_token_len * base_summary_ratio)
 
-            if end == total_tokens:
-                break
+            # 2. Clamp the desired length between absolute min and max
+            target_max_len = max(min_summary_tokens, desired_max_len)
+            target_max_len = min(target_max_len, max_summary_tokens)
 
-            next_start_ideal = start + chunk_size - chunk_overlap
-            next_start_safe = end - chunk_overlap
-            start = max(next_start_ideal, next_start_safe)
-            if start <= pbar.n * step_size:
-                start = end - chunk_overlap if end > chunk_overlap else end
+            # 3. Calculate min_length based on the final clamped target_max_len
+            #    Using 0.4 or 0.5 * max_len as min often gives a good range.
+            target_min_len = max(10, math.ceil(target_max_len * 0.4))
+            # Ensure min_length is strictly less than max_length
+            target_min_len = min(target_min_len, target_max_len - 5) # Leave a gap
+            target_min_len = max(10, target_min_len) # Ensure min_len doesn't drop too low
 
-    final_summary = " ".join(summaries)
+            # Final defensive check: Ensure min < max
+            if target_min_len >= target_max_len:
+                print(f"Warning: Min length ({target_min_len}) >= Max length ({target_max_len}). Adjusting.")
+                if target_max_len > min_summary_tokens + 5: # Can we lower max?
+                     target_max_len = target_min_len + 5
+                else: # Must lower min
+                     target_min_len = max(10, target_max_len - 5)
+                # Last resort if still bad
+                if target_min_len >= target_max_len:
+                     target_min_len = 10
+                     target_max_len = max(min_summary_tokens, 20)
+                print(f"--> Adjusted lengths: Min={target_min_len}, Max={target_max_len}")
+            # --- End Length Calculation ---
+
+            try:
+                with torch.no_grad():
+                    summary_ids = model.generate(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        max_length=target_max_len,
+                        min_length=target_min_len,
+                        length_penalty=1.5,  # Encourages model not to stop too early (tune this)
+                        num_beams=4,         # Beam search width (tune this)
+                        early_stopping=True, # Stop when beams converge
+                        no_repeat_ngram_size=2, # Avoid repeating phrases
+                        # Set target language for mBART using detected source lang code
+                        decoder_start_token_id=tokenizer.lang_code_to_id[lang_code]
+                    )
+
+                # Decode the generated summary
+                # skip_special_tokens=True removes language codes and <s>/</s>
+                decoded_summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+                summaries.append(decoded_summary.strip())
+
+            except Exception as e:
+                 print(f"\nError during generation for chunk starting at index {start_idx}: {e}")
+                 # Decide how to handle: skip chunk, add placeholder, etc.
+                 summaries.append("[GENERATION ERROR]") # Add placeholder
+
+            # Advance pointer for the next chunk
+            start_idx += step_size
+            pbar.update(1)
+
+
+    # Combine chunk summaries
+    final_summary = " ".join(s for s in summaries if s and s != "[GENERATION ERROR]") # Join non-empty, non-error summaries
+
+    # --- Optional Final Pass (Advanced) ---
+    # If the combined summary is very long (e.g., > 1024 tokens) and originated
+    # from many chunks, you might consider summarizing the combined summary itself
+    # for better coherence. This adds complexity and compute time.
+    # combined_tokens = tokenizer.encode(final_summary, add_special_tokens=False)
+    # if len(combined_tokens) > tokenizer.model_max_length and estimated_chunks > 3: # Example condition
+    #     print("\nRunning final consolidation pass...")
+    #     final_summary = summarize_text_chunked(
+    #         final_summary,
+    #         # Use different settings for the final pass if needed
+    #         chunk_size=tokenizer.model_max_length,
+    #         chunk_overlap=200,
+    #         base_summary_ratio=0.5, # Maybe allow longer final summary
+    #         min_summary_tokens=100,
+    #         max_summary_tokens=500
+    #     )
+    # --- End Optional Final Pass ---
+
+
+    print("\n--- Final Generated Summary ---")
     print(final_summary)
     return final_summary
 
+# --- Test it ---
+# # user_input_short = "Weather is the day-to-day condition of the Earth's atmosphere. It includes temperature, humidity, and wind."
+# user_input_long = """Sustainable development is crucial for ensuring a balanced relationship between economic growth, environmental preservation, and social well-being. It aims to meet the needs of the present without compromising the ability of future generations to meet their own needs. As global populations rise and natural resources become increasingly strained, sustainable development offers a framework for using resources efficiently while reducing environmental impact.
 
+# This approach promotes renewable energy, responsible consumption, and conservation of biodiversity, helping combat climate change and environmental degradation. Socially, it focuses on reducing poverty, improving education, and promoting equality, thereby fostering inclusive and resilient communities. Economically, it encourages innovation and long-term planning, making businesses more adaptive and environmentally conscious."""
 
-# # --- Test it ---
-# user_input = """Weather is the day-to-day condition of the Earth's atmosphere in a particular place and time. It includes various atmospheric phenomena such as temperature, humidity, precipitation (rain, snow, sleet), wind, visibility, and atmospheric pressure. Unlike climate, which refers to long-term patterns over decades or centuries, weather is temporary and can change rapidly—sometimes within minutes or hours.
+# # print("\nTesting with SHORT input:")
+# # summary_short = summarize_text_chunked(user_input_short)
 
-# The main driver of weather is the sun. Solar energy heats the Earth’s surface unevenly due to factors like latitude, surface materials, and cloud cover. This uneven heating causes differences in air pressure and temperature, setting the atmosphere in motion. Warm air rises, cool air sinks, and these movements generate wind and storms. Water vapor in the atmosphere also plays a crucial role—when it condenses into clouds and falls as precipitation, it redistributes heat and moisture around the globe.
-
-# Weather can vary significantly from place to place. For example, tropical regions often experience warm temperatures and high humidity year-round, while polar regions remain cold and dry. Mountainous areas might see rapid weather shifts due to elevation, and coastal cities usually have milder, more stable weather due to the moderating influence of the ocean.
-
-# Meteorologists study weather to predict upcoming conditions using data from satellites, weather stations, balloons, and radar systems. Modern forecasting relies heavily on computer models that simulate atmospheric processes based on current data. While short-term forecasts (up to five days) are generally reliable, long-range forecasts are less accurate due to the complexity and chaotic nature of the atmosphere.
-
-# Weather affects almost every aspect of human life. Agriculture, transportation, construction, and even mood and health are influenced by weather conditions. For instance, prolonged droughts can lead to crop failure, while heavy snowstorms can disrupt travel and power supplies. Severe weather events like hurricanes, tornadoes, and floods can cause widespread damage and loss of life.
-
-# Climate change is also influencing weather patterns. Rising global temperatures are leading to more extreme and unpredictable weather events. For example, we are seeing more intense heatwaves, stronger hurricanes, and shifting rainfall patterns. Understanding and adapting to these changes is one of the major challenges of our time.
-
-# Despite technological advances, weather remains a complex and fascinating natural phenomenon. From the calm of a sunny afternoon to the fury of a thunderstorm, weather reflects the dynamic balance of natural forces at work in our atmosphere. It connects us to our environment and reminds us of nature’s power and unpredictability.
-
-# In conclusion, weather is more than just a daily forecast—it is a vital part of the Earth's system that influences life on a global scale. By studying weather, we gain insight into the interactions between air, water, and land, and we learn how to prepare for the conditions that shape our daily experiences."""
-
-# summary = summarize_text_chunked(user_input, chunk_size=900, chunk_overlap=100, summary_ratio=0.3)
-# print("\n--- Final Generated Summary ---\n", summary)
+# print("\nTesting with LONG input:")
+# # Ensure you have a long text example here if you want to test chunking
+# summary_long = summarize_text_chunked(user_input_long)
