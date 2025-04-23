@@ -529,7 +529,7 @@
             const languageSelect = document.getElementById("languageSelect");
             const selectedLang = languageSelect.value;
             let outputText = document.getElementById("outputText");
-
+            console.log(selectedLang);
             if (outputText.value.trim().length == 0) {
                 showErrorAlert("Please enter text to summarize.");
                 return;
