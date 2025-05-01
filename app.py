@@ -16,9 +16,10 @@ from pprint import pprint
 import tempfile
 from werkzeug.utils import secure_filename
 
-from summarizer import summarize_text_chunked
-from translator import translate_text
+# from summarizer import summarize_text_chunked
+from translator import translate_text, detect_lang
 from file_processor import read_file
+from summarizer import summarize_text
 
 app = Flask(__name__)
 
@@ -150,13 +151,99 @@ def contact():
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
-    data = request.json
-    text = data.get("text", "")
-    length_ratio = float(data.get("length_ratio", 0.3))
-    if not text:
-        return jsonify({"summary": "Please enter some text to summarize."})
-    summary = summarize_text_chunked(text, chunk_size=900, chunk_overlap=100, base_summary_ratio=length_ratio)
-    return jsonify({"summary": summary})
+    print("\n--- Received /summarize request ---")
+    try:
+        data = request.json
+        text = data.get("text", "")
+        length_ratio = float(data.get("length_ratio", 0.3)) # Default ratio if not provided
+        print(f"Length Ratio: {length_ratio}")
+        print(f"Input Text Snippet: {text[:150]}...")
+
+        if not text or not text.strip():
+            print("Error: Input text is empty.")
+            return jsonify({"summary": "Please enter some text to summarize."}), 400
+
+        # 1. Detect Language
+        print("Step 1: Detecting language...")
+        original_language = detect_lang(text)
+        print(f"Detected Language: '{original_language}'")
+
+        # Handle potential errors from detection
+        if "[Error" in original_language:
+             print(f"Language detection failed: {original_language}")
+             # Return the specific error from detect_lang
+             return jsonify({"summary": f"Could not process request: {original_language}"}), 500
+
+        # Normalize for comparison
+        detected_lang_lower = original_language.strip().lower()
+
+        # 2. Check if English
+        if detected_lang_lower == "english":
+            print("Step 2: Language is English. Proceeding with direct summarization.")
+            # Summarize directly
+            summary = summarize_text(text, length_ratio)
+            print("Step 3: Summarization complete (English).")
+            print(f"Final Summary Snippet: {summary[:150]}...")
+
+            # Handle potential errors from summarizer
+            if "[Error" in summary:
+                print(f"Summarization failed: {summary}")
+                return jsonify({"summary": f"Summarization failed: {summary}"}), 500
+
+            return jsonify({"summary": summary})
+
+        else:
+            # 3. Translate to English (if not English)
+            print(f"Step 2: Language is '{original_language}'. Translating to English...")
+            translated_to_english = translate_text(text, target_language_name="English")
+            print(f"Step 2b: Text translated to English snippet: {translated_to_english[:150]}...")
+
+            # Handle potential errors from translation
+            if "[Error" in translated_to_english:
+                 print(f"Translation to English failed: {translated_to_english}")
+                 return jsonify({"summary": f"Could not translate text to English: {translated_to_english}"}), 500
+            if not translated_to_english or not translated_to_english.strip():
+                 print("Error: Translation to English resulted in empty text.")
+                 return jsonify({"summary": "Error: Translation to English failed (empty result)."}), 500
+
+
+            # 4. Summarize the English Text
+            print("Step 3: Summarizing the translated English text...")
+            english_summary = summarize_text(translated_to_english, length_ratio)
+            print(f"Step 3b: English summary snippet: {english_summary[:150]}...")
+
+            # Handle potential errors from summarizer
+            if "[Error" in english_summary:
+                print(f"Summarization of translated text failed: {english_summary}")
+                return jsonify({"summary": f"Summarization failed: {english_summary}"}), 500
+            if not english_summary or not english_summary.strip():
+                 print("Error: Summarization resulted in empty text.")
+                 return jsonify({"summary": "Error: Summarization failed (empty result)."}), 500
+
+
+            # 5. Translate Summary Back to Original Language
+            print(f"Step 4: Translating summary back to '{original_language}'...")
+            # Pass the *original detected language name* here
+            final_summary = translate_text(english_summary, target_language_name=original_language)
+            print(f"Step 4b: Final summary (translated back) snippet: {final_summary[:150]}...")
+
+
+            # Handle potential errors from back-translation
+            if "[Error" in final_summary:
+                 print(f"Back-translation to {original_language} failed: {final_summary}")
+                 return jsonify({"summary": f"Could not translate summary back to {original_language}: {final_summary}"}), 500
+
+
+            print("--- Summarize request processing complete ---")
+            return jsonify({"summary": final_summary})
+
+    except Exception as e:
+        # Catch any unexpected errors in the main try block
+        print(f"FATAL ERROR in /summarize endpoint: {e}")
+        import traceback
+        traceback.print_exc() # Print detailed traceback to console/logs
+        return jsonify({"summary": "An unexpected server error occurred."}), 500
+    
 
 @app.route('/translate', methods=['POST'])
 def translate():
@@ -225,4 +312,4 @@ def upload_file():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
