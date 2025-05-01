@@ -7,22 +7,6 @@ from groq import Groq
 
 load_dotenv()
 
-# --- Language Dictionary (Optional but good for reference) ---
-# You might not need this for the current logic if detect_lang returns full names
-# and translate_text uses names directly. Keep it if you need code mapping elsewhere.
-# try:
-#     with open('./static/supported_languages.json', 'r', encoding='utf-8') as file:
-#         data = json.load(file)
-#         language_dict = data[0]
-# except FileNotFoundError:
-#     print("Warning: supported_languages.json not found. Language code mapping unavailable.")
-#     language_dict = {}
-# except Exception as e:
-#     print(f"Error loading supported_languages.json: {e}")
-#     language_dict = {}
-
-# --- Groq Client Initialization ---
-# Consider initializing the client once if possible, but ensure API key is loaded correctly
 try:
     groq_api_key = os.environ.get("GROQ_API_KEY2")
     if not groq_api_key:
