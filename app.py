@@ -1,10 +1,3 @@
-
-#TODO Implement the following features
-
-#TODO Abstractive vs. Extractive Summaries: Offering the option to generate either abstractive (paraphrased) or extractive (verbatim) summaries.
-#TODO Keyword Highlighting: Automatically highlight the most relevant terms.
-#TODO Document and PDF Summaries: Extract summaries from PDF, DOCX, or TXT files.
-
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
